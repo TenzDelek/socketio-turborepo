@@ -1,20 +1,7 @@
 import {Server} from 'socket.io'
 import Redis from 'ioredis';
-
-const pub=new Redis({
-    host:"subtle-monkfish-59207.upstash.io",
-    port:6379,
-    password:process.env.UPSTASH,
-    username:"default"
-
-})
-const sub=new Redis({
-    host:"subtle-monkfish-59207.upstash.io",
-    port:6379,
-    password:process.env.UPSTASH,
-    username:"default"
-
-})
+const pub=new Redis(process.env.UPSTASHREDIS!)//or paste your redisurl here with ""
+const sub=new Redis(process.env.UPSTASHREDIS!)
 class SocketService {
     private _io:Server; 
     constructor() {
