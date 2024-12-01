@@ -1,54 +1,69 @@
 'use client'
 
 import { createContext, FC, ReactNode, useCallback, useContext, useEffect, useState } from "react"
-import {io, Socket} from "socket.io-client"
-interface socketproviderprop {
+import { io, Socket } from "socket.io-client"
+
+interface SocketProviderProp {
     children?: ReactNode
 }
 
-interface isocketcontext{
-    sendMessage:(msg:string)=>any  
-    messages:string[]
-
+interface Message {
+    text: string;
+    socketId: string;
 }
-const SocketContext=createContext<isocketcontext | null>(null)
 
-export const useSocket=()=>{
-    const state=useContext(SocketContext)
+interface ISocketContext {
+    sendMessage: (msg: string) => void;
+    messages: Message[];
+    currentSocketId: string;
+}
+
+const SocketContext = createContext<ISocketContext | null>(null)
+
+export const useSocket = () => {
+    const state = useContext(SocketContext)
     if (!state) throw new Error('state is not defined lil bro')
-    
     return state
-
 }
-export const SocketProvider:FC<socketproviderprop>=({children})=>{
-    const [socket,setsocket]=useState<Socket>()
-    const [messages,setmessages]=useState<string[]>([])
-    const sendMessage:isocketcontext['sendMessage']=useCallback((msg)=>{
+
+export const SocketProvider: FC<SocketProviderProp> = ({ children }) => {
+    const [socket, setSocket] = useState<Socket>()
+    const [messages, setMessages] = useState<Message[]>([])
+    const [currentSocketId, setCurrentSocketId] = useState<string>('')
+
+    const sendMessage: ISocketContext['sendMessage'] = useCallback((msg) => {
         console.log(`send message ${msg}`)
-        if(socket)
-        {
-            socket.emit('event:message',{message:msg})
+        if (socket) {
+            socket.emit('event:message', { message: msg, socketId: currentSocketId })
         }
-    },[socket])
-    
-    const messageRecieved=useCallback((msg:string)=>{
-        console.log('from server message recieved:',msg)
-        const {message}=JSON.parse(msg) as {message:string}
-        setmessages(prev=>[...prev,message]) //spread old and add message
-    },[])
-    useEffect(()=>{
-        const _socket=io('http://localhost:3002') //backend address
-        _socket.on('message',messageRecieved) //when ever message come trigger this
-        setsocket(_socket)
-        return ()=>{
-            _socket.disconnect() //re-render so it should be disconnected during that
-            _socket.off('message',messageRecieved)
-            setsocket(undefined)
-            
+    }, [socket, currentSocketId])
+
+    const messageReceived = useCallback((msg: string) => {
+        console.log('from server message received:', msg)
+        const { message, socketId } = JSON.parse(msg) as { message: string, socketId: string }
+        setMessages(prev => [...prev, { text: message, socketId }])
+    }, [])
+
+    useEffect(() => {
+        const _socket = io('http://localhost:3002')
+        
+        // Store the current socket ID when connection is established
+        _socket.on('connect', () => {
+            setCurrentSocketId(_socket.id || '')
+        })
+
+        _socket.on('message', messageReceived)
+        setSocket(_socket)
+
+        return () => {
+            _socket.disconnect()
+            _socket.off('message', messageReceived)
+            setSocket(undefined)
         }
-    },[])
+    }, [])
+
     return (
-        <SocketContext.Provider value={{sendMessage, messages}}>
+        <SocketContext.Provider value={{ sendMessage, messages, currentSocketId }}>
             {children}
         </SocketContext.Provider>
     )

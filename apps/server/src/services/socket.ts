@@ -14,28 +14,31 @@ class SocketService {
         })
         sub.subscribe('MESSAGES')
     }
-    public initlistener(){
-        const io=this.io
-        console.log("inistalized socket listener")
-        io.on("connect",(socket)=>{
-            console.log("new socket connected",socket.id)
-            socket.on("event:message",async({message}:{message:String})=>{
-                console.log("new message recieved ", message)
-                //publish this message to redis
-                await pub.publish('MESSAGES',JSON.stringify({
-                    message
-                }))//ON MESSAGES CHANNEL WE WILL PUBLISH THAT OBJECT (the server send message to redis)
+
+    public initlistener() {
+        const io = this.io
+        console.log("initialized socket listener")
+        io.on("connect", (socket) => {
+            console.log("new socket connected", socket.id)
+            socket.on("event:message", async ({ message, socketId }: { message: string, socketId: string }) => {
+                console.log("new message received ", message)
+                // Publish message with socket ID
+                await pub.publish('MESSAGES', JSON.stringify({
+                    message,
+                    socketId
+                }))
             })
         })
 
-        //when ever there is a message , we have which channel and what message
-        sub.on('message',(channel,message)=>{
-            if(channel==="MESSAGES"){
-                io.emit("message",message) //sending to all client
+        // When there is a message, we have which channel and what message
+        sub.on('message', (channel, message) => {
+            if (channel === "MESSAGES") {
+                io.emit("message", message) // sending to all clients
             }
         })
     }
-    get io(){
+
+    get io() {
         return this._io
     }
 }
