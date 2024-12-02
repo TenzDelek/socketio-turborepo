@@ -40,7 +40,7 @@ export default function Page() {
                     ))}
                 </div>
             </div>
-            <div className="bg-gray-600 p-2 rounded-lg absolute bottom-2 w-full max-w-md">
+            <div className="bg-gray-600 p-2 flex rounded-lg absolute bottom-2 w-full max-w-md">
                 <input
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
